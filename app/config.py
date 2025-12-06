@@ -13,8 +13,8 @@ class Config:
     
     # Flask settings
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    FLASK_ENV = os.getenv('FLASK_ENV', 'development')
-    DEBUG = os.getenv('FLASK_DEBUG', 'False') == 'True'
+    FLASK_ENV = os.getenv('FLASK_ENV', 'production')
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
     # Database settings
     DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///data/sentiment.db')
