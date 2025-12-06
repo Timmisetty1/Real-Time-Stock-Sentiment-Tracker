@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>📊 Dashboard Overview</h2>
+    <div id="loading" class="loading">Loading statistics...</div>
+    <div id="stats-container" style="display: none;">
+        <div class="stats-grid" id="stats-grid"></div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>💼 Tracked Companies</h2>
+    <div id="companies-loading" class="loading">Loading companies...</div>
+    <ul class="company-list" id="company-list" style="display: none;"></ul>
+</div>
+
+<div class="card">
+    <h2>📰 Recent Documents</h2>
+    <div id="docs-loading" class="loading">Loading recent documents...</div>
+    <div id="documents-list" style="display: none;"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch and display statistics
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stats-container').style.display = 'block';
+            
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Documents</div>
+                    <div class="stat-value">${data.document_count.total.toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">News Articles</div>
+                    <div class="stat-value">${data.document_count.news.toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Reddit Posts</div>
+                    <div class="stat-value">${data.document_count.reddit.toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tracked Companies</div>
+                    <div class="stat-value">${data.tracked_companies}</div>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('loading').innerHTML = 
+                '<div class="error">Error loading statistics</div>';
+        }
+    }
+    
+    // Fetch and display companies
+    async function loadCompanies() {
+        try {
+            const response = await fetch('/api/companies');
+            const data = await response.json();
+            
+            document.getElementById('companies-loading').style.display = 'none';
+            document.getElementById('company-list').style.display = 'block';
+            
+            const companyList = document.getElementById('company-list');
+            
+            if (data.companies.length === 0) {
+                companyList.innerHTML = '<li class="company-item">No companies tracked yet. Run the scraper first.</li>';
+                return;
+            }
+            
+            companyList.innerHTML = data.companies
+                .sort((a, b) => b.total_documents - a.total_documents)
+                .map(company => {
+                    const sentiment = company.avg_sentiment;
+                    let sentimentClass = 'sentiment-neutral';
+                    let sentimentLabel = 'Neutral';
+                    
+                    if (sentiment > 0.2) {
+                        sentimentClass = 'sentiment-positive';
+                        sentimentLabel = 'Positive';
+                    } else if (sentiment < -0.2) {
+                        sentimentClass = 'sentiment-negative';
+                        sentimentLabel = 'Negative';
+                    }
+                    
+                    return `
+                        <li class="company-item">
+                            <div>
+                                <span class="company-ticker">${company.company}</span>
+                                <span style="color: #666; margin-left: 10px;">
+                                    ${company.total_documents} documents
+                                </span>
+                            </div>
+                            <div>
+                                <span class="sentiment-badge ${sentimentClass}">
+                                    ${sentimentLabel} (${sentiment.toFixed(2)})
+                                </span>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+        } catch (error) {
+            document.getElementById('companies-loading').innerHTML = 
+                '<div class="error">Error loading companies</div>';
+        }
+    }
+    
+    // Fetch and display recent documents
+    async function loadRecentDocuments() {
+        try {
+            const response = await fetch('/api/recent-documents?limit=10');
+            const data = await response.json();
+            
+            document.getElementById('docs-loading').style.display = 'none';
+            document.getElementById('documents-list').style.display = 'block';
+            
+            const docsList = document.getElementById('documents-list');
+            
+            if (data.documents.length === 0) {
+                docsList.innerHTML = '<p style="padding: 20px; color: #666;">No documents found. Run the scraper to collect data.</p>';
+                return;
+            }
+            
+            docsList.innerHTML = data.documents.map(doc => {
+                const date = new Date(doc.scraped_date).toLocaleString();
+                const sourceColor = doc.source === 'news' ? '#4caf50' : '#2196f3';
+                
+                return `
+                    <div style="padding: 15px; border-bottom: 1px solid #eee;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <h3 style="margin-bottom: 5px; font-size: 1.1em;">
+                                    <a href="${doc.url}" target="_blank" style="color: #667eea; text-decoration: none;">
+                                        ${doc.title}
+                                    </a>
+                                </h3>
+                                <p style="color: #666; font-size: 0.9em;">
+                                    <span style="background: ${sourceColor}; color: white; padding: 2px 8px; border-radius: 3px; margin-right: 10px;">
+                                        ${doc.source}
+                                    </span>
+                                    ${date}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            document.getElementById('docs-loading').innerHTML = 
+                '<div class="error">Error loading documents</div>';
+        }
+    }
+    
+    // Load all data on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadCompanies();
+        loadRecentDocuments();
+    });
+</script>
+{% endblock %}

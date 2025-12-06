@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ticker }} - Stock Sentiment Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ ticker }} Sentiment Analysis</h2>
+    <div id="loading" class="loading">Loading sentiment data...</div>
+    <div id="sentiment-data" style="display: none;">
+        <div id="summary"></div>
+        <div id="chart" style="margin-top: 20px;"></div>
+    </div>
+</div>
+
+<div class="card">
+    <a href="/" style="color: #667eea; text-decoration: none;">&larr; Back to Dashboard</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const ticker = "{{ ticker }}";
+    
+    async function loadSentimentData() {
+        try {
+            const response = await fetch(`/api/sentiment/${ticker}?days=30`);
+            
+            if (!response.ok) {
+                throw new Error('No data found');
+            }
+            
+            const data = await response.json();
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('sentiment-data').style.display = 'block';
+            
+            // Display summary
+            const agg = data.aggregated;
+            const sentiment = agg.avg_sentiment;
+            let sentimentClass = 'sentiment-neutral';
+            let sentimentLabel = 'Neutral';
+            
+            if (sentiment > 0.2) {
+                sentimentClass = 'sentiment-positive';
+                sentimentLabel = 'Positive';
+            } else if (sentiment < -0.2) {
+                sentimentClass = 'sentiment-negative';
+                sentimentLabel = 'Negative';
+            }
+            
+            document.getElementById('summary').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Average Sentiment</div>
+                        <div class="stat-value">${sentiment.toFixed(2)}</div>
+                        <span class="sentiment-badge ${sentimentClass}">${sentimentLabel}</span>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Documents</div>
+                        <div class="stat-value">${agg.total_documents}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Positive</div>
+                        <div class="stat-value">${agg.positive_count}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Negative</div>
+                        <div class="stat-value">${agg.negative_count}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Display history
+            if (data.history.length > 0) {
+                const historyHtml = data.history
+                    .slice(0, 20)
+                    .map(item => {
+                        const date = new Date(item.date).toLocaleString();
+                        let badgeClass = 'sentiment-neutral';
+                        if (item.label === 'POSITIVE') badgeClass = 'sentiment-positive';
+                        if (item.label === 'NEGATIVE') badgeClass = 'sentiment-negative';
+                        
+                        return `
+                            <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                                <span style="color: #666;">${date}</span>
+                                <span class="sentiment-badge ${badgeClass}">
+                                    ${item.label} (${item.score.toFixed(2)})
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                
+                document.getElementById('chart').innerHTML = `
+                    <h3 style="margin-bottom: 15px;">Recent Sentiment History</h3>
+                    ${historyHtml}
+                `;
+            }
+        } catch (error) {
+            document.getElementById('loading').innerHTML = 
+                '<div class="error">No sentiment data found for this company. It may not have been analyzed yet.</div>';
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', loadSentimentData);
+</script>
+{% endblock %}
