@@ -1,13 +1,12 @@
 """
 Script to scrape data and perform sentiment analysis.
 """
-import sys
 import argparse
 from app import create_app
 from app.config import Config
 from app.scrapers import NewsScraper, RedditScraper
-from app.sentiment import SentimentAnalyzer, SentimentAggregator
-from app.database import DatabaseManager, db
+from app.sentiment import SentimentAnalyzer
+from app.database import DatabaseManager
 from datetime import datetime
 
 

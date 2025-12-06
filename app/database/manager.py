@@ -2,7 +2,6 @@
 Database manager for handling database operations.
 """
 from datetime import datetime, timedelta
-from sqlalchemy import func
 from .models import db, Document, SentimentScore, CompanyMention
 
 

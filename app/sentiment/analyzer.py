@@ -3,7 +3,6 @@ Sentiment analyzer with Named Entity Recognition for company mentions.
 """
 from transformers import pipeline
 import spacy
-from collections import Counter
 import re
 
 

@@ -4,6 +4,7 @@ News scraper module using BeautifulSoup for financial news articles.
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from urllib.parse import urljoin
 import time
 import random
 
@@ -175,7 +176,6 @@ class NewsScraper:
                     link = link_elem['href'] if link_elem else url
                     
                     if not link.startswith('http'):
-                        from urllib.parse import urljoin
                         link = urljoin(url, link)
                     
                     # Try to get content
